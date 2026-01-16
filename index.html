@@ -51,6 +51,7 @@
         font-size: 14px;
         background-color: rgba(0,0,0,0.4);
         z-index: 9999;
+        display: none;
       }
       #debugOverlay {
         position: absolute;
@@ -66,11 +67,30 @@
         white-space: pre;
         z-index: 9999;
       }
+
+      #toast {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 8px 12px;
+        color: white;
+        background-color: rgba(0,0,0,0.7);
+        font-family: sans-serif;
+        font-size: 16px;
+        border-radius: 4px;
+        opacity: 0;
+        transition: opacity 0.4s ease-in-out;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      #toast.visible {
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <div id="hint">
-      Press [Shift] to toggle debug. Press digit keys to switch folders (1,2,3,...)
+      Press [Shift] to toggle debug. Press [H] to show/hide this menu. Press [M] to mute/unmute. Press [T] to toggle always-on-top. Press digit keys to switch folders (1,2,3,...)
     </div>
     <!-- Two "containers" for crossfade, can hold <img> or <video> -->
     <div id="containerA" class="mediaContainer hidden"></div>
@@ -78,6 +98,7 @@
 
     <!-- Debug overlay -->
     <div id="debugOverlay"></div>
+    <div id="toast"></div>
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
