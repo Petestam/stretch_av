@@ -64,6 +64,14 @@ function getVideosPath() {
   return path.join(__dirname, 'videos');
 }
 
+function isSafeFolderName(folderName) {
+  if (typeof folderName !== 'string' || folderName.length === 0) return false;
+  if (folderName !== path.basename(folderName)) return false;
+  if (folderName.includes('..')) return false;
+  if (/[\\/]/.test(folderName)) return false;
+  return true;
+}
+
 // Add this function to handle the 'getModes' IPC call
 ipcMain.handle('getModes', async () => {
   try {
@@ -83,6 +91,10 @@ ipcMain.handle('getModes', async () => {
 // Add this function to handle the 'getVideos' IPC call
 ipcMain.handle('getVideos', async (event, folderName) => {
   try {
+    if (!isSafeFolderName(folderName)) {
+      console.warn('Rejected invalid folder name:', folderName);
+      return [];
+    }
     const videoDir = getVideosPath();
     const folderPath = path.join(videoDir, folderName);
     const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });

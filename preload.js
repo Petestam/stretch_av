@@ -29,7 +29,9 @@ contextBridge.exposeInMainWorld('videoApp', {
     let currentModeIndex = 0;
     let files = [];
     let currentIndex = 0;
+    let nextFileIndex = 0;
     let nextPreloaded = false;
+    let preloadedFilePath = '';
 
     // Debug info
     let currentFolder = '';
@@ -95,6 +97,28 @@ contextBridge.exposeInMainWorld('videoApp', {
         console.warn('Failed to convert file path to URL:', error);
         return filePath;
       }
+    }
+
+    function waitForVideoEnd(container) {
+      const videoEl = container.querySelector('video');
+      if (!videoEl) return Promise.resolve(false);
+      if (videoEl.ended) return Promise.resolve(true);
+      return new Promise((resolve, reject) => {
+        const onEnded = () => {
+          cleanup();
+          resolve(true);
+        };
+        const onError = (err) => {
+          cleanup();
+          reject(err);
+        };
+        const cleanup = () => {
+          videoEl.removeEventListener('ended', onEnded);
+          videoEl.removeEventListener('error', onError);
+        };
+        videoEl.addEventListener('ended', onEnded);
+        videoEl.addEventListener('error', onError);
+      });
     }
 
     function setMutedForAllVideos(muted) {
@@ -171,7 +195,8 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
             if (!nextPreloaded && files.length > 1 && remaining <= CROSSFADE_TIME) {
               // Trigger a manual preload for the next media
               nextPreloaded = true;
-              playMediaInContainer(nextContainer, files[(currentIndex + 1) % files.length]);
+              preloadedFilePath = files[nextFileIndex % files.length];
+              playMediaInContainer(nextContainer, preloadedFilePath);
             }
             updateDebug();
           });
@@ -237,6 +262,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       if (nextIdx >= files.length) {
         nextIdx = 0;
       }
+      nextFileIndex = nextIdx;
       nextFileName = getFileName(files[nextIdx]);
     
       // 5) Update debug so it shows the next file
@@ -253,7 +279,15 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       nextContainer.classList.add('hidden');
     
       // 8) Play media (image or video) and wait until done
-      await playMediaInContainer(currentContainer, filePath);
+      const canReusePreloaded = nextPreloaded &&
+        preloadedFilePath === filePath &&
+        currentContainer.querySelector('video') &&
+        currentContainer.querySelector('video').src === toMediaUrl(filePath);
+      if (canReusePreloaded) {
+        await waitForVideoEnd(currentContainer);
+      } else {
+        await playMediaInContainer(currentContainer, filePath);
+      }
     
       // 9) Crossfade
       doCrossfade();
@@ -288,6 +322,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       currentFolder = modes[idx];
       currentIndex = 0;
       nextPreloaded = false;
+      preloadedFilePath = '';
 
       // Grab the files in this folder
       files = await ipcRenderer.invoke('getVideos', currentFolder);
@@ -320,6 +355,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       durationStr = '0:00';
       timeRemainingStr = '0:00';
       nextPreloaded = false;
+      preloadedFilePath = '';
       updateDebug();
     }
 
