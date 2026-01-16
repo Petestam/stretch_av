@@ -68,9 +68,11 @@ function getVideosPath() {
 ipcMain.handle('getModes', async () => {
   try {
     const videoDir = getVideosPath();
-    const folders = fs.readdirSync(videoDir, { withFileTypes: true })
+    const entries = await fs.promises.readdir(videoDir, { withFileTypes: true });
+    const folders = entries
       .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+      .map(dirent => dirent.name)
+      .sort((a, b) => a.localeCompare(b));
     return folders;
   } catch (error) {
     console.error('Error reading video directories:', error);
@@ -83,11 +85,15 @@ ipcMain.handle('getVideos', async (event, folderName) => {
   try {
     const videoDir = getVideosPath();
     const folderPath = path.join(videoDir, folderName);
-    const files = fs.readdirSync(folderPath)
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+    const files = entries
+      .filter(dirent => dirent.isFile())
+      .map(dirent => dirent.name)
       .filter(file => {
         const ext = path.extname(file).toLowerCase();
         return ['.mp4', '.mov', '.webm', '.m4v', '.avi', '.mkv', '.jpg', '.jpeg', '.png', '.gif', '.bmp'].includes(ext);
-      });
+      })
+      .sort((a, b) => a.localeCompare(b));
     return files.map(file => path.join(folderPath, file));
   } catch (error) {
     console.error(`Error reading files in folder ${folderName}:`, error);

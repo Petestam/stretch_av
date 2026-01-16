@@ -1,4 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
+const { pathToFileURL } = require('url');
 
 contextBridge.exposeInMainWorld('videoApp', {
   init: async function () {
@@ -24,6 +25,7 @@ contextBridge.exposeInMainWorld('videoApp', {
     let currentModeIndex = 0;
     let files = [];
     let currentIndex = 0;
+    let nextPreloaded = false;
 
     // Debug info
     let currentFolder = '';
@@ -82,6 +84,14 @@ contextBridge.exposeInMainWorld('videoApp', {
       if (h > 0) return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
       return `${m}:${s.toString().padStart(2,'0')}`;
     }
+    function toMediaUrl(filePath) {
+      try {
+        return pathToFileURL(filePath).toString();
+      } catch (error) {
+        console.warn('Failed to convert file path to URL:', error);
+        return filePath;
+      }
+    }
 
     // **Update debugOverlay text**
     function updateDebug() {
@@ -114,7 +124,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
         if (isVideoFile(filePath)) {
           mediaType = 'video';
           const videoEl = document.createElement('video');
-          videoEl.src = filePath;
+          videoEl.src = toMediaUrl(filePath);
           videoEl.autoplay = true;
           videoEl.muted = false; // or true if desired
           videoEl.playsInline = true;
@@ -132,8 +142,9 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
             const remaining = d - ct;
             timeRemainingStr = formatTime(remaining);
             // Preload next if near the end
-            if (remaining <= CROSSFADE_TIME && nextContainer.paused !== false) {
+            if (!nextPreloaded && files.length > 1 && remaining <= CROSSFADE_TIME) {
               // Trigger a manual preload for the next media
+              nextPreloaded = true;
               playMediaInContainer(nextContainer, files[(currentIndex + 1) % files.length]);
             }
             updateDebug();
@@ -150,7 +161,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
         } else if (isImageFile(filePath)) {
           mediaType = 'image';
           const imgEl = document.createElement('img');
-          imgEl.src = filePath;
+          imgEl.src = toMediaUrl(filePath);
           imgEl.style.display = 'block';
           // Wait for image to load, then set a 30s timer
           imgEl.addEventListener('load', () => {
@@ -207,6 +218,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
     
       // 6) Advance currentIndex for the next iteration
       currentIndex++;
+      nextPreloaded = false;
     
       // 7) Show current container, hide next
       currentContainer.classList.remove('hidden');
@@ -249,6 +261,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       currentModeIndex = idx;
       currentFolder = modes[idx];
       currentIndex = 0;
+      nextPreloaded = false;
 
       // Grab the files in this folder
       files = await ipcRenderer.invoke('getVideos', currentFolder);
@@ -280,6 +293,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       currentTimeStr = '0:00';
       durationStr = '0:00';
       timeRemainingStr = '0:00';
+      nextPreloaded = false;
       updateDebug();
     }
 
