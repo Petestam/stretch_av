@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('videoApp', {
 
     const hintOverlay = document.getElementById('hint');
     const debugOverlay = document.getElementById('debugOverlay');
+    const toast = document.getElementById('toast');
 
     if (!containerA || !containerB) {
       console.error('Missing containerA or containerB');
@@ -20,6 +21,9 @@ contextBridge.exposeInMainWorld('videoApp', {
 
     // Global state
     let debugVisible = false;
+    let hintVisible = false;
+    let isMuted = false;
+    let alwaysOnTopEnabled = false;
     let modes = [];  // e.g. ["normal", "women", "f1", "pictures", ...]
     let currentModeIndex = 0;
     let files = [];
@@ -83,6 +87,28 @@ contextBridge.exposeInMainWorld('videoApp', {
       return `${m}:${s.toString().padStart(2,'0')}`;
     }
 
+    function setMutedForAllVideos(muted) {
+      [containerA, containerB].forEach((div) => {
+        const videoEl = div.querySelector('video');
+        if (videoEl) {
+          videoEl.muted = muted;
+        }
+      });
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add('visible');
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+      }
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('visible');
+      }, 1500);
+    }
+
     // **Update debugOverlay text**
     function updateDebug() {
       if (!debugOverlay) return;
@@ -116,7 +142,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
           const videoEl = document.createElement('video');
           videoEl.src = filePath;
           videoEl.autoplay = true;
-          videoEl.muted = false; // or true if desired
+          videoEl.muted = isMuted;
           videoEl.playsInline = true;
           videoEl.style.display = 'block';
           videoEl.addEventListener('loadedmetadata', () => {
@@ -291,14 +317,45 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       if (debugOverlay) {
         debugOverlay.style.display = debugVisible ? 'block' : 'none';
       }
+    }
+
+    function toggleHint() {
+      hintVisible = !hintVisible;
       if (hintOverlay) {
-        hintOverlay.style.display = debugVisible ? 'block' : 'none';
+        hintOverlay.style.display = hintVisible ? 'block' : 'none';
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      setMutedForAllVideos(isMuted);
+      showToast(isMuted ? 'Muted' : 'Unmuted');
+    }
+
+    async function toggleAlwaysOnTop() {
+      alwaysOnTopEnabled = !alwaysOnTopEnabled;
+      try {
+        await ipcRenderer.invoke('setAlwaysOnTop', alwaysOnTopEnabled);
+      } catch (err) {
+        console.error('Failed to set always on top:', err);
       }
     }
 
     document.addEventListener('keydown', (e) => {
       if (e.code === 'ShiftLeft') {
         toggleDebug();
+        return;
+      }
+      if (e.code === 'KeyH') {
+        toggleHint();
+        return;
+      }
+      if (e.code === 'KeyM') {
+        toggleMute();
+        return;
+      }
+      if (e.code === 'KeyT') {
+        toggleAlwaysOnTop();
         return;
       }
       // If user pressed 1..9, load that folder
