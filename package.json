@@ -1,0 +1,45 @@
+{
+  "name": "stretch_av",
+  "version": "1.0.0",
+  "description": "Electron app for stretching videos across two monitors",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^24.1.0",
+    "electron-builder": "^24.3.0"
+  },
+  "dependencies": {
+    "electron-updater": "^5.3.0",
+    "express": "^4.21.2",
+    "lfs": "^0.0.4",
+    "serve-index": "^1.9.1"
+  },
+  "build": {
+    "appId": "com.example.stretch_av",
+    "productName": "Stretch AV",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "main.js",
+      "preload.js",
+      "index.html",
+      "videos/**/*"
+    ],
+    "asarUnpack": [
+      "videos/**/*"
+    ],
+    "extraFiles": [
+      "path/to/extra/files"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

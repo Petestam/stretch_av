@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Multi-state (Images + Videos)</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        overflow: hidden;
+      }
+
+      /* Two "containers" for crossfade; each can hold an <img> or <video>. */
+      .mediaContainer {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: black;
+        transition: opacity 0.5s ease-in-out; /* crossfade duration */
+        opacity: 0;
+      }
+      .visible {
+        opacity: 1;
+        z-index: 2;
+      }
+      .hidden {
+        opacity: 0;
+        z-index: 1;
+      }
+
+      /* We'll put <img> or <video> inside each container, fully covering the area. */
+      .mediaContainer img, .mediaContainer video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* or 'cover' if you prefer fill/crop */
+        background-color: black;
+        display: block;
+      }
+
+      #hint {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 5px;
+        color: white;
+        font-family: sans-serif;
+        font-size: 14px;
+        background-color: rgba(0,0,0,0.4);
+        z-index: 9999;
+      }
+      #debugOverlay {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        margin: 5px;
+        padding: 10px;
+        color: lime;
+        background-color: rgba(0,0,0,0.6);
+        font-family: monospace;
+        font-size: 14px;
+        display: none; /* toggled by Shift */
+        white-space: pre;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hint">
+      Press [Shift] to toggle debug. Press digit keys to switch folders (1,2,3,...)
+    </div>
+    <!-- Two "containers" for crossfade, can hold <img> or <video> -->
+    <div id="containerA" class="mediaContainer hidden"></div>
+    <div id="containerB" class="mediaContainer hidden"></div>
+
+    <!-- Debug overlay -->
+    <div id="debugOverlay"></div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        if (window.videoApp && typeof window.videoApp.init === 'function') {
+          window.videoApp.init();
+        }
+      });
+    </script>
+  </body>
+</html>
