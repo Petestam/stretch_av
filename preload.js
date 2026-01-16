@@ -270,7 +270,6 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
     
       // 6) Advance currentIndex for the next iteration
       currentIndex++;
-      nextPreloaded = false;
     
       // 7) Show current container, hide next
       currentContainer.classList.remove('hidden');
@@ -288,6 +287,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       } else {
         await playMediaInContainer(currentContainer, filePath);
       }
+      nextPreloaded = false;
     
       // 9) Crossfade
       doCrossfade();

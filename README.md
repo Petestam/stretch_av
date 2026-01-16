@@ -16,6 +16,26 @@ Prerequisites
 	3.	Git (if you want to clone/pull from GitHub)
 	4.	Two monitors of 1920×1080 each, set to Extended mode in your OS display settings (so the total horizontal resolution is 3840).
 
+Installing Node.js and npm from scratch
+	1.	Windows
+	•	Download the LTS installer from https://nodejs.org and run it (npm is included).
+	•	Open a new terminal and verify:
+		node -v
+		npm -v
+	2.	macOS
+	•	Homebrew (recommended):
+		brew install node
+	•	Verify:
+		node -v
+		npm -v
+	3.	Linux (Ubuntu/Debian)
+	•	Use NodeSource (recommended for newer versions):
+		curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+		sudo apt-get install -y nodejs
+	•	Verify:
+		node -v
+		npm -v
+
 Installation & Setup
 	1.	Clone or Download this repository:
 

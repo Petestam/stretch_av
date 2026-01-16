@@ -123,6 +123,11 @@ app.whenReady().then(() => {
   });
 });
 
+ipcMain.handle('setAlwaysOnTop', async (event, enabled) => {
+  if (!mainWindow) return;
+  mainWindow.setAlwaysOnTop(Boolean(enabled));
+});
+
 // Quit on close (except macOS standard).
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
