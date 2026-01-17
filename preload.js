@@ -51,10 +51,19 @@ contextBridge.exposeInMainWorld('videoApp', {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
     try {
       modes = await ipcRenderer.invoke('getModes'); 
+      const baseHintLines = (hintOverlay && hintOverlay.dataset && hintOverlay.dataset.shortcuts)
+        ? hintOverlay.dataset.shortcuts.split('|').map(line => line.trim()).filter(Boolean)
+        : [
+          'Press [Shift] = toggle debug',
+          'Press [H] = show/hide this menu',
+          'Press [M] = mute/unmute',
+          'Press [T] = toggle always-on-top',
+        ];
+
       if (!modes || modes.length === 0) {
         hintOverlay.innerText = 'No folders in /videos/.';
       } else {
-        let hintText = 'Press [Shift] = toggle debug\n\n';
+        let hintText = [...baseHintLines, ''].join('\n');
         modes.forEach((folder, idx) => {
           const keyNum = idx + 1;
           hintText += `Press [${keyNum}] = ${folder}\n`;
