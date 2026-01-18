@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('videoApp', {
     let nextFileIndex = 0;
     let nextPreloaded = false;
     let preloadedFilePath = '';
+    let currentPlayback = null;
 
     // Debug info
     let currentFolder = '';
@@ -130,6 +131,29 @@ contextBridge.exposeInMainWorld('videoApp', {
       });
     }
 
+    function skipCurrentMedia() {
+      if (!currentPlayback) {
+        showToast('No media to skip');
+        return;
+      }
+      if (currentPlayback.type === 'image' && currentPlayback.timeoutId) {
+        clearTimeout(currentPlayback.timeoutId);
+      }
+      if (currentPlayback.type === 'video' && currentPlayback.videoEl) {
+        const videoEl = currentPlayback.videoEl;
+        if (isFinite(videoEl.duration)) {
+          videoEl.currentTime = Math.max(0, videoEl.duration - 0.05);
+        } else {
+          videoEl.pause();
+        }
+      }
+      if (typeof currentPlayback.resolve === 'function') {
+        currentPlayback.resolve();
+      }
+      currentPlayback = null;
+      showToast('Skipped');
+    }
+
     function setMutedForAllVideos(muted) {
       [containerA, containerB].forEach((div) => {
         const videoEl = div.querySelector('video');
@@ -188,6 +212,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
           videoEl.muted = isMuted;
           videoEl.playsInline = true;
           videoEl.style.display = 'block';
+          currentPlayback = { type: 'video', resolve, videoEl };
           videoEl.addEventListener('loadedmetadata', () => {
             resolution = `${videoEl.videoWidth}x${videoEl.videoHeight}`;
             durationStr = formatTime(videoEl.duration);
@@ -210,6 +235,9 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
             updateDebug();
           });
           videoEl.addEventListener('ended', () => {
+            if (currentPlayback && currentPlayback.resolve === resolve) {
+              currentPlayback = null;
+            }
             resolve(); // done playing
           });
           videoEl.addEventListener('error', (err) => {
@@ -223,6 +251,7 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
           const imgEl = document.createElement('img');
           imgEl.src = toMediaUrl(filePath);
           imgEl.style.display = 'block';
+          currentPlayback = { type: 'image', resolve, timeoutId: null };
           // Wait for image to load, then set a 30s timer
           imgEl.addEventListener('load', () => {
             // We show images for 30 seconds
@@ -230,9 +259,13 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
             resolution = `${imgEl.naturalWidth}x${imgEl.naturalHeight}`;
             durationStr = '30s (image)';
             updateDebug();
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
+              if (currentPlayback && currentPlayback.resolve === resolve) {
+                currentPlayback = null;
+              }
               resolve();
             }, IMAGE_DISPLAY_TIME * 1000);
+            currentPlayback.timeoutId = timeoutId;
           });
           imgEl.addEventListener('error', (err) => {
             console.error('Image load error:', err);
@@ -415,6 +448,10 @@ Time: ${currentTimeStr}/${durationStr} (remaining: ${timeRemainingStr})
       }
       if (e.code === 'KeyT') {
         toggleAlwaysOnTop();
+        return;
+      }
+      if (e.code === 'KeyN' || e.code === 'ArrowRight') {
+        skipCurrentMedia();
         return;
       }
       // If user pressed 1..9, load that folder
